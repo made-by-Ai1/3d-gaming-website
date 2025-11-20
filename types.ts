@@ -14,9 +14,29 @@ export interface ChatMessage {
   isTyping?: boolean;
 }
 
+export interface Tournament {
+  id: number;
+  title: string;
+  game: string;
+  prizePool: string;
+  date: string;
+  image: string;
+  status: 'open' | 'ongoing' | 'finished';
+  participants: number;
+}
+
+export interface NewsItem {
+  id: number;
+  title: string;
+  summary: string;
+  date: string;
+  image: string;
+  category: string;
+}
+
 export enum AppSection {
   HOME = 'home',
   GAMES = 'games',
   NEWS = 'news',
-  COMMUNITY = 'community'
+  TOURNAMENTS = 'tournaments'
 }
