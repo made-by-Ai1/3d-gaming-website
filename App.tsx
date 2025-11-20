@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Hero3D } from './components/Hero3D';
 import { GameCard } from './components/GameCard';
 import { ChatWidget } from './components/ChatWidget';
-import { Game, AppSection, Tournament, NewsItem } from './types';
-import { Gamepad2, Trophy, Users, Zap, Calendar, ArrowRight, Newspaper, Filter, Search, Clock } from 'lucide-react';
+import { AuthModal } from './components/AuthModal';
+import { Game, AppSection, Tournament, NewsItem, User } from './types';
+import { authService } from './services/authService';
+import { Gamepad2, Trophy, Users, Zap, Calendar, ArrowRight, Newspaper, Filter, Search, Clock, LogOut, User as UserIcon, Settings, Shield, Mail, Edit, Award } from 'lucide-react';
 
 // --- Mock Data ---
 
@@ -32,12 +35,49 @@ const NEWS_DATA: NewsItem[] = [
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppSection>(AppSection.HOME);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Check for existing session on load
+    const user = authService.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, []);
+
+  const openAuth = (mode: 'login' | 'register') => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+  };
+
+  const handleLogin = (username: string) => {
+    const user = authService.getCurrentUser(); // Refresh user object from storage
+    setCurrentUser(user);
+    setIsAuthOpen(false);
+    setActiveTab(AppSection.PROFILE);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setCurrentUser(null);
+    setActiveTab(AppSection.HOME);
+  };
+
+  const handleHeroCta = () => {
+    if (currentUser) {
+      setActiveTab(AppSection.PROFILE);
+    } else {
+      openAuth('register');
+    }
+  };
 
   // --- Sub-Components for Sections ---
 
   const HomeSection = () => (
     <>
-      <Hero3D />
+      <Hero3D isLoggedIn={!!currentUser} onCtaClick={handleHeroCta} />
       <div className="bg-slate-900 py-10 border-y border-slate-800">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           <div className="p-4">
@@ -92,9 +132,15 @@ const App: React.FC = () => {
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
               همین حالا ثبت نام کن و به بزرگترین کامیونیتی گیمرهای ایرانی بپیوند. دسترسی نامحدود به تورنمنت‌ها و جوایز ویژه.
             </p>
-            <button className="bg-white text-purple-900 font-black text-lg px-10 py-4 rounded-full hover:bg-gray-200 transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-              عضویت رایگان
-            </button>
+            {currentUser ? (
+               <button onClick={() => setActiveTab(AppSection.TOURNAMENTS)} className="bg-white text-purple-900 font-black text-lg px-10 py-4 rounded-full hover:bg-gray-200 transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                 مشاهده تورنمنت‌ها
+               </button>
+            ) : (
+              <button onClick={() => openAuth('register')} className="bg-white text-purple-900 font-black text-lg px-10 py-4 rounded-full hover:bg-gray-200 transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                عضویت رایگان
+              </button>
+            )}
           </div>
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-neon-cyan/20 rounded-full blur-3xl"></div>
           <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-neon-pink/20 rounded-full blur-3xl"></div>
@@ -168,8 +214,11 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex justify-end">
-                       <button className="w-full md:w-auto bg-neon-purple hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-[0_0_15px_rgba(176,38,255,0.4)] flex items-center justify-center gap-2">
-                         ثبت نام در مسابقات
+                       <button 
+                         onClick={() => !currentUser && openAuth('login')}
+                         className="w-full md:w-auto bg-neon-purple hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-[0_0_15px_rgba(176,38,255,0.4)] flex items-center justify-center gap-2"
+                       >
+                         {currentUser ? 'ثبت نام در مسابقات' : 'ورود جهت ثبت نام'}
                          <ArrowRight size={18} className="rotate-180" />
                        </button>
                     </div>
@@ -215,6 +264,148 @@ const App: React.FC = () => {
     </div>
   );
 
+  const ProfileSection = () => {
+    if (!currentUser) return <div className="pt-32 text-center">لطفا ابتدا وارد شوید.</div>;
+
+    return (
+      <div className="pt-10 pb-20 px-4 max-w-6xl mx-auto min-h-screen">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Sidebar: Profile Info */}
+          <div className="lg:col-span-1">
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 text-center sticky top-24">
+              <div className="relative inline-block mb-4">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-neon-purple to-blue-600 p-1 mx-auto">
+                   <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                      <UserIcon size={64} className="text-gray-300" />
+                   </div>
+                </div>
+                <div className="absolute bottom-0 right-2 bg-green-500 w-6 h-6 rounded-full border-4 border-slate-800"></div>
+              </div>
+              
+              <h2 className="text-2xl font-black text-white mb-1">{currentUser.username}</h2>
+              <p className="text-gray-400 text-sm mb-6">{currentUser.email}</p>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-slate-900/50 p-3 rounded-xl">
+                   <div className="text-neon-cyan font-black text-xl">Lvl 12</div>
+                   <div className="text-xs text-gray-500">سطح کاربری</div>
+                </div>
+                <div className="bg-slate-900/50 p-3 rounded-xl">
+                   <div className="text-yellow-400 font-black text-xl">2,450</div>
+                   <div className="text-xs text-gray-500">امتیاز XP</div>
+                </div>
+              </div>
+
+              <button onClick={handleLogout} className="w-full border border-red-500/30 text-red-400 hover:bg-red-500/10 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+                <LogOut size={18} />
+                خروج از حساب
+              </button>
+            </div>
+          </div>
+
+          {/* Right Content: Details */}
+          <div className="lg:col-span-2 space-y-8">
+             
+             {/* Stats Row */}
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+               <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex items-center gap-4">
+                  <div className="bg-blue-500/20 p-3 rounded-lg text-blue-400">
+                    <Gamepad2 size={24} />
+                  </div>
+                  <div>
+                    <div className="font-black text-xl">14</div>
+                    <div className="text-xs text-gray-400">بازی‌های من</div>
+                  </div>
+               </div>
+               <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex items-center gap-4">
+                  <div className="bg-purple-500/20 p-3 rounded-lg text-purple-400">
+                    <Trophy size={24} />
+                  </div>
+                  <div>
+                    <div className="font-black text-xl">3</div>
+                    <div className="text-xs text-gray-400">تورنمنت‌ها</div>
+                  </div>
+               </div>
+               <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex items-center gap-4">
+                  <div className="bg-yellow-500/20 p-3 rounded-lg text-yellow-400">
+                    <Award size={24} />
+                  </div>
+                  <div>
+                    <div className="font-black text-xl">5</div>
+                    <div className="text-xs text-gray-400">دستاوردها</div>
+                  </div>
+               </div>
+             </div>
+
+             {/* Edit Profile Form (Mock) */}
+             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
+                   <Settings className="text-neon-cyan" />
+                   <h3 className="text-xl font-bold text-white">تنظیمات حساب کاربری</h3>
+                </div>
+                
+                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                         <label className="block text-xs text-gray-400 mb-1.5">نام نمایشی</label>
+                         <div className="relative">
+                            <input type="text" defaultValue={currentUser.username} className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 px-4 text-white focus:border-neon-purple outline-none" />
+                            <Edit size={16} className="absolute left-3 top-3 text-gray-500" />
+                         </div>
+                      </div>
+                      <div>
+                         <label className="block text-xs text-gray-400 mb-1.5">ایمیل</label>
+                         <div className="relative">
+                             <input type="email" defaultValue={currentUser.email} disabled className="w-full bg-slate-900/50 border border-slate-700 rounded-lg py-2.5 px-4 text-gray-400 cursor-not-allowed" />
+                             <Mail size={16} className="absolute left-3 top-3 text-gray-600" />
+                         </div>
+                      </div>
+                   </div>
+
+                   <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">تغییر رمز عبور</label>
+                      <div className="relative">
+                          <input type="password" placeholder="رمز عبور جدید (اختیاری)" className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 px-4 text-white focus:border-neon-purple outline-none" />
+                          <Shield size={16} className="absolute left-3 top-3 text-gray-500" />
+                      </div>
+                   </div>
+
+                   <div className="flex justify-end pt-2">
+                      <button className="bg-neon-purple hover:bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold transition-colors shadow-[0_0_15px_rgba(176,38,255,0.3)]">
+                        ذخیره تغییرات
+                      </button>
+                   </div>
+                </form>
+             </div>
+
+             {/* Recent Activity Mock */}
+             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4">فعالیت‌های اخیر</h3>
+                <div className="space-y-4">
+                   <div className="flex items-center gap-4 p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                      <div className="bg-green-500/10 p-2 rounded-lg text-green-500"><Zap size={20} /></div>
+                      <div>
+                         <div className="text-sm font-bold text-white">ورود به مسابقات "جام قهرمانان زاگرس"</div>
+                         <div className="text-xs text-gray-500">۲ روز پیش</div>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4 p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                      <div className="bg-blue-500/10 p-2 rounded-lg text-blue-500"><Gamepad2 size={20} /></div>
+                      <div>
+                         <div className="text-sm font-bold text-white">خرید بازی "سایبرپانک: تهران ۲۰۸۸"</div>
+                         <div className="text-xs text-gray-500">۱ هفته پیش</div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-neon-purple selection:text-white">
       {/* Navbar */}
@@ -253,10 +444,29 @@ const App: React.FC = () => {
                 اخبار
               </button>
             </div>
-            <div className="flex items-center gap-4">
-              <button className="hidden md:block text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 transition-colors">ورود</button>
-              <button className="bg-neon-cyan text-slate-900 font-bold px-4 py-2 rounded-lg hover:bg-cyan-300 transition-colors shadow-[0_0_15px_rgba(0,243,255,0.4)]">عضویت</button>
-            </div>
+            
+            {/* Auth Buttons / User Profile */}
+            {currentUser ? (
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setActiveTab(AppSection.PROFILE)}
+                  className="hidden md:flex items-center gap-2 text-white animate-[fadeIn_0.3s] hover:bg-slate-800 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-neon-purple to-blue-600 rounded-full flex items-center justify-center border border-white/20 shadow-[0_0_10px_rgba(176,38,255,0.3)]">
+                    <UserIcon size={16} />
+                  </div>
+                  <span className="font-bold text-sm">{currentUser.username}</span>
+                </button>
+                <button onClick={handleLogout} className="p-2 hover:bg-slate-800 rounded-lg text-red-400 transition-colors" title="خروج">
+                  <LogOut size={20} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <button onClick={() => openAuth('login')} className="hidden md:block text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 transition-colors">ورود</button>
+                <button onClick={() => openAuth('register')} className="bg-neon-cyan text-slate-900 font-bold px-4 py-2 rounded-lg hover:bg-cyan-300 transition-colors shadow-[0_0_15px_rgba(0,243,255,0.4)]">عضویت</button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
@@ -266,6 +476,7 @@ const App: React.FC = () => {
         {activeTab === AppSection.GAMES && <GamesSection />}
         {activeTab === AppSection.TOURNAMENTS && <TournamentsSection />}
         {activeTab === AppSection.NEWS && <NewsSection />}
+        {activeTab === AppSection.PROFILE && <ProfileSection />}
       </main>
 
       {/* Footer */}
@@ -313,6 +524,14 @@ const App: React.FC = () => {
 
       {/* Floating Chat */}
       <ChatWidget />
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        initialMode={authMode} 
+        onClose={() => setIsAuthOpen(false)} 
+        onLogin={handleLogin} 
+      />
     </div>
   );
 };

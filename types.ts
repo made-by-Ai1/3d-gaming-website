@@ -1,3 +1,4 @@
+
 export interface Game {
   id: number;
   title: string;
@@ -34,9 +35,18 @@ export interface NewsItem {
   category: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  passwordHash: string; // In a real app, never store plain passwords
+  createdAt: string;
+}
+
 export enum AppSection {
   HOME = 'home',
   GAMES = 'games',
   NEWS = 'news',
-  TOURNAMENTS = 'tournaments'
+  TOURNAMENTS = 'tournaments',
+  PROFILE = 'profile'
 }
