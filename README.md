@@ -27,7 +27,7 @@
 
 ### ۱. کلون کردن مخزن (Clone)
 ```bash
-git clone https://github.com/your-username/nexgen-gaming.git
+git clone https://github.com/made-by-Ai1/3d-gaming-website
 cd nexgen-gaming
 ```
 
